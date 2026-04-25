@@ -1,80 +1,133 @@
-// components/DiseasePredictor.tsx
 "use client";
 
 import React, { useState } from "react";
 
 const DiseasePredictor = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [prediction, setPrediction] = useState("");
-  const [confidence, setConfidence] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedFile(event.target.files[0]);
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
+      setResult(null);
     }
   };
 
-  const handlePrediction = async () => {
-    if (!selectedFile) {
-      alert("කරුණාකර පින්තූරයක් තෝරන්න!");
-      return;
-    }
+  const predict = async () => {
+    if (!file) return alert("Upload image first");
 
     setLoading(true);
 
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8001/predict", {
+      const res = await fetch("http://localhost:8001/predict", {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await res.json();
+      console.log("API RESPONSE:", data);
 
-      setPrediction(data.prediction);
-      setConfidence(data.confidence);
-    } catch (error) {
-      console.error(error);
-      alert("Backend connect wenne na!");
+      setResult(data);
+    } catch (err) {
+      console.log(err);
+      alert("Backend error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-xl">
-      <h2 className="text-xl font-bold mb-4 text-green-700">
-        🌿 Cinnamon Disease Predictor
-      </h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
 
-      <input
-        type="file"
-        onChange={onFileChange}
-        accept="image/*"
-        className="mb-4"
-      />
+      <div className="w-full max-w-4xl bg-white p-6 rounded-xl shadow">
 
-      <button
-        onClick={handlePrediction}
-        disabled={loading}
-        className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600"
-      >
-        {loading ? "Checking..." : "Predict Now"}
-      </button>
+        <h1 className="text-2xl font-bold text-green-700 text-center mb-4">
+          🌿 Cinnamon Disease Detection AI
+        </h1>
 
-      {prediction && (
-        <div className="mt-6 p-4 bg-green-100 rounded-xl">
-          <h3 className="text-lg font-bold text-green-700">
-            Result: {prediction}
-          </h3>
-          <p className="text-gray-700">
-            Confidence: {confidence}
-          </p>
-        </div>
-      )}
+        {/* Upload */}
+        <input type="file" onChange={onFileChange} className="mb-4 w-full" />
+
+        {/* Preview */}
+        {preview && (
+          <img
+            src={preview}
+            className="w-40 h-40 mx-auto mb-4 rounded border"
+          />
+        )}
+
+        {/* Button */}
+        <button
+          onClick={predict}
+          disabled={loading}
+          className="w-full bg-green-600 text-white py-3 rounded"
+        >
+          {loading ? "Analyzing..." : "Predict Disease"}
+        </button>
+
+        {/* RESULT */}
+        {result && (
+          <div className="mt-6 space-y-4">
+
+            {/* 🔥 MAIN AI OUTPUT */}
+            <div className="p-5 bg-black text-green-400 rounded-xl whitespace-pre-wrap">
+              {result.formatted_output}
+            </div>
+
+            {/* GRID CARDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div className="p-4 bg-green-100 rounded">
+                <h2 className="font-bold text-lg">🌿 {result.prediction}</h2>
+                <p>Confidence: {result.confidence}</p>
+              </div>
+
+              <div className="p-4 bg-blue-100 rounded">
+                <p className="font-bold">🔍 Diagnosis</p>
+                <p>{result.diagnosis}</p>
+              </div>
+
+              <div className="p-4 bg-yellow-100 rounded">
+                <p className="font-bold">⚠️ Symptoms</p>
+                <p>{result.symptoms}</p>
+              </div>
+
+              <div className="p-4 bg-red-100 rounded">
+                <p className="font-bold">💡 Solutions</p>
+                <ul className="list-disc ml-5">
+                  {result.solutions?.map((s: string, i: number) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 bg-purple-100 rounded">
+                <p className="font-bold">🛡 Prevention</p>
+                <ul className="list-disc ml-5">
+                  {result.prevention?.map((p: string, i: number) => (
+                    <li key={i}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 bg-gray-200 rounded">
+                <p className="font-bold">📊 Severity</p>
+                <p>{result.severity}</p>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };

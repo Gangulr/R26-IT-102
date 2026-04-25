@@ -18,7 +18,7 @@ const DiseasePredictor = () => {
   };
 
   const predict = async () => {
-    if (!file) return alert("Upload image");
+    if (!file) return alert("Upload image first");
 
     setLoading(true);
 
@@ -32,7 +32,6 @@ const DiseasePredictor = () => {
       });
 
       const data = await res.json();
-
       console.log("API RESPONSE:", data);
 
       setResult(data);
@@ -50,28 +49,45 @@ const DiseasePredictor = () => {
       <div className="w-full max-w-3xl bg-white p-6 rounded-xl shadow">
 
         <h1 className="text-2xl font-bold text-green-700 text-center mb-4">
-          🌿 Cinnamon Disease Detection
+          🌿 Cinnamon Disease Detection AI
         </h1>
 
-        <input type="file" onChange={onFileChange} className="mb-4 w-full" />
+        {/* Upload */}
+        <input
+          type="file"
+          onChange={onFileChange}
+          className="mb-4 w-full"
+        />
 
+        {/* Preview */}
         {preview && (
-          <img src={preview} className="w-40 h-40 mx-auto mb-4 rounded" />
+          <img
+            src={preview}
+            className="w-40 h-40 mx-auto mb-4 rounded border"
+          />
         )}
 
+        {/* Button */}
         <button
           onClick={predict}
           disabled={loading}
-          className="w-full bg-green-600 text-white py-3 rounded"
+          className="w-full bg-green-600 text-white py-3 rounded hover:bg-green-700"
         >
-          {loading ? "Analyzing..." : "Predict"}
+          {loading ? "Analyzing..." : "Predict Disease"}
         </button>
 
         {/* RESULT */}
         {result && (
           <div className="mt-6 space-y-4">
 
-            {/* Prediction */}
+            {/* ⭐ MAIN AI OUTPUT (BEST DISPLAY) */}
+            {result?.formatted_output && (
+              <div className="p-5 bg-gray-900 text-green-300 rounded-xl whitespace-pre-wrap shadow-lg">
+                {result.formatted_output}
+              </div>
+            )}
+
+            {/* Prediction Card */}
             <div className="p-4 bg-green-100 rounded">
               <h2 className="font-bold text-lg">
                 {result?.prediction}
@@ -87,13 +103,13 @@ const DiseasePredictor = () => {
 
             {/* Symptoms */}
             <div className="p-4 bg-gray-50 rounded">
-              <p className="font-bold">⚠️ Symptoms / රෝග ලක්ෂණ</p>
+              <p className="font-bold">⚠️ Symptoms</p>
               <p>{result?.symptoms}</p>
             </div>
 
             {/* Solutions */}
             <div className="p-4 bg-red-50 rounded">
-              <p className="font-bold">💡 Solutions / විසඳුම්</p>
+              <p className="font-bold">💡 Solutions</p>
 
               <ul className="list-disc ml-5">
                 {result?.solutions?.map((item: string, i: number) => (
