@@ -10,6 +10,7 @@ const DiseasePredictor = () => {
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
+
     if (f) {
       setFile(f);
       setPreview(URL.createObjectURL(f));
@@ -17,7 +18,7 @@ const DiseasePredictor = () => {
     }
   };
 
-  const predict = async () => {
+  const predictDisease = async () => {
     if (!file) return alert("Upload image first");
 
     setLoading(true);
@@ -26,107 +27,106 @@ const DiseasePredictor = () => {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8001/predict", {
+      const res = await fetch("http://localhost:8001/disease-predict/", {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
-      console.log("API RESPONSE:", data);
+      console.log("DISEASE API RESPONSE:", data);
 
       setResult(data);
     } catch (err) {
       console.log(err);
-      alert("Backend error");
+      alert("Disease backend error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
-
-      <div className="w-full max-w-4xl bg-white p-6 rounded-xl shadow">
-
-        <h1 className="text-2xl font-bold text-green-700 text-center mb-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-6">
+      <div className="w-full max-w-4xl rounded-xl bg-white p-6 shadow">
+        <h1 className="mb-4 text-center text-2xl font-bold text-green-700">
           🌿 Cinnamon Disease Detection AI
         </h1>
 
-        {/* Upload */}
         <input type="file" onChange={onFileChange} className="mb-4 w-full" />
 
-        {/* Preview */}
         {preview && (
           <img
             src={preview}
-            className="w-40 h-40 mx-auto mb-4 rounded border"
+            alt="Uploaded Cinnamon Leaf"
+            className="mx-auto mb-4 h-40 w-40 rounded border object-cover"
           />
         )}
 
-        {/* Button */}
         <button
-          onClick={predict}
+          onClick={predictDisease}
           disabled={loading}
-          className="w-full bg-green-600 text-white py-3 rounded"
+          className="w-full rounded bg-green-600 py-3 text-white hover:bg-green-700 disabled:opacity-60"
         >
           {loading ? "Analyzing..." : "Predict Disease"}
         </button>
 
-        {/* RESULT */}
         {result && (
           <div className="mt-6 space-y-4">
+            {result.formatted_output && (
+              <div className="whitespace-pre-wrap rounded-xl bg-black p-5 text-green-400">
+                {result.formatted_output}
+              </div>
+            )}
 
-            {/* 🔥 MAIN AI OUTPUT */}
-            <div className="p-5 bg-black text-green-400 rounded-xl whitespace-pre-wrap">
-              {result.formatted_output}
-            </div>
-
-            {/* GRID CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              <div className="p-4 bg-green-100 rounded">
-                <h2 className="font-bold text-lg">🌿 {result.prediction}</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded bg-green-100 p-4">
+                <h2 className="text-lg font-bold">🌿 {result.prediction}</h2>
                 <p>Confidence: {result.confidence}</p>
               </div>
 
-              <div className="p-4 bg-blue-100 rounded">
+              <div className="rounded bg-blue-100 p-4">
                 <p className="font-bold">🔍 Diagnosis</p>
                 <p>{result.diagnosis}</p>
               </div>
 
-              <div className="p-4 bg-yellow-100 rounded">
+              <div className="rounded bg-yellow-100 p-4">
                 <p className="font-bold">⚠️ Symptoms</p>
                 <p>{result.symptoms}</p>
               </div>
 
-              <div className="p-4 bg-red-100 rounded">
+              <div className="rounded bg-red-100 p-4">
                 <p className="font-bold">💡 Solutions</p>
-                <ul className="list-disc ml-5">
+                <ul className="ml-5 list-disc">
                   {result.solutions?.map((s: string, i: number) => (
                     <li key={i}>{s}</li>
                   ))}
                 </ul>
               </div>
 
-              <div className="p-4 bg-purple-100 rounded">
+              <div className="rounded bg-purple-100 p-4">
                 <p className="font-bold">🛡 Prevention</p>
-                <ul className="list-disc ml-5">
+                <ul className="ml-5 list-disc">
                   {result.prevention?.map((p: string, i: number) => (
                     <li key={i}>{p}</li>
                   ))}
                 </ul>
               </div>
 
-              <div className="p-4 bg-gray-200 rounded">
+              <div className="rounded bg-gray-200 p-4">
                 <p className="font-bold">📊 Severity</p>
                 <p>{result.severity}</p>
               </div>
 
+              <div className="rounded bg-emerald-100 p-4 md:col-span-2">
+                <p className="font-bold">🔥 Firebase Status</p>
+                <p>
+                  {result.database_saved
+                    ? "Saved to Firebase successfully"
+                    : "Not saved to Firebase"}
+                </p>
+              </div>
             </div>
-
           </div>
         )}
-
       </div>
     </div>
   );

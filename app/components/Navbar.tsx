@@ -9,8 +9,9 @@ type NavItem = { href: string; label: string };
 const navItems: NavItem[] = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/diseaseprediction", label: "Prediction" },
-  { href: "/vision", label: "Vision" },
+  { href: "/diseaseprediction", label: "Disease Prediction" },
+  { href: "/growthprediction", label: "Growth Prediction" }, // ✅ NEW PAGE
+  { href: "/history", label: "History" }
 ];
 
 function isActivePath(pathname: string, href: string) {
