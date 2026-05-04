@@ -14,51 +14,91 @@ export default function GrowthPredictionPage() {
   const [sensorTime, setSensorTime] = useState("");
   const [loading, setLoading] = useState(false);
   const [sensorLoading, setSensorLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // ================= LOAD MODEL METRICS =================
   useEffect(() => {
     fetch("http://localhost:8001/metrics")
       .then((res) => res.json())
       .then((data) => setMetrics(data))
-      .catch(() => console.log("Metrics load failed"));
+      .catch(() => console.log("Metrics error"));
   }, []);
 
-  // ================= HANDLE INPUT =================
-  const handleChange = (e: any) => {
+  const validateField = (name: string, value: number) => {
+    if (Number.isNaN(value)) return "Please enter a valid number.";
+    if (value < 0) return "Negative values are not allowed.";
+
+    if (name === "temperature" && value > 60) {
+      return "Temperature must be below 60°C.";
+    }
+
+    if ((name === "humidity" || name === "moisture") && value > 100) {
+      return "Humidity and Soil Moisture must be below 100%.";
+    }
+
+    return "";
+  };
+
+  const validateAllFields = () => {
+    return (
+      validateField("temperature", form.temperature) ||
+      validateField("humidity", form.humidity) ||
+      validateField("moisture", form.moisture)
+    );
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const numValue = Number(value);
+
+    const validationError = validateField(name, numValue);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError("");
     setForm({
       ...form,
-      [e.target.name]: Number(e.target.value),
+      [name]: numValue,
     });
   };
 
-  // ================= GET LIVE SENSOR =================
-  const fetchLiveSensorData = async () => {
+  const getSensorData = async () => {
     try {
       setSensorLoading(true);
+      setError("");
 
       const res = await fetch("http://localhost:8001/latest-sensor-data");
       const data = await res.json();
 
       setForm({
-        temperature: data.temperature,
-        humidity: data.humidity,
-        moisture: data.moisture,
+        temperature: Number(data.temperature),
+        humidity: Number(data.humidity),
+        moisture: Number(data.moisture),
       });
 
-      setSensorTime(data.timestamp);
-    } catch (error) {
-      alert("Sensor data load failed");
+      setSensorTime(data.timestamp || "");
+    } catch (err) {
+      setError("Sensor data load failed. Please check the backend.");
     } finally {
       setSensorLoading(false);
     }
   };
 
-  // ================= PREDICT =================
   const handlePredict = async () => {
+    const validationError = validateAllFields();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     try {
       setLoading(true);
+      setError("");
 
-      const response = await fetch("http://localhost:8001/growth-predict/", {
+      const res = await fetch("http://localhost:8001/growth-predict/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,143 +106,206 @@ export default function GrowthPredictionPage() {
         body: JSON.stringify(form),
       });
 
-      const data = await response.json();
-      console.log("Growth API:", data);
+      if (!res.ok) {
+        throw new Error("Prediction request failed");
+      }
 
+      const data = await res.json();
+      console.log("Growth Result:", data);
       setResult(data);
-    } catch (error) {
-      alert("Prediction error");
+    } catch (err) {
+      setError("Prediction failed. Please check the backend server.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-green-50 px-6 py-10">
-      <div className="mx-auto max-w-5xl rounded-3xl bg-white p-8 shadow-lg">
-
-        <h1 className="text-3xl font-bold text-green-800 mb-2">
+    <div className="min-h-screen bg-green-50 p-8">
+      <div className="mx-auto max-w-5xl rounded-3xl bg-white p-8 shadow">
+        <h1 className="mb-2 text-3xl font-bold text-green-800">
           🌿 Cinnamon Growth Prediction
         </h1>
 
-        <p className="text-gray-600 mb-6">
-          Predict growth, bark thickness, and harvest readiness using IoT data.
+        <p className="mb-6 text-gray-600">
+          Predict growth, bark thickness, harvest status, alerts and
+          recommendations using IoT sensor data.
         </p>
 
-        {/* ================= METRICS ================= */}
         {metrics && (
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-purple-100 p-4 rounded">
-              <p>Model</p>
-              <h2 className="font-bold">{metrics.model_name}</h2>
-            </div>
-
-            <div className="bg-green-100 p-4 rounded">
-              <p>Accuracy</p>
-              <h2 className="text-2xl font-bold">
-                {metrics.accuracy_percentage}%
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl bg-purple-100 p-4">
+              <p className="text-sm text-gray-600">Model</p>
+              <h2 className="font-bold text-purple-800">
+                {metrics.model_name ?? "Random Forest Regressor"}
               </h2>
             </div>
 
-            <div className="bg-blue-100 p-4 rounded">
-              <p>Samples</p>
-              <h2 className="text-2xl font-bold">
-                {metrics.training_samples}
+            <div className="rounded-2xl bg-green-100 p-4">
+              <p className="text-sm text-gray-600">Accuracy</p>
+              <h2 className="text-2xl font-bold text-green-800">
+                {metrics.accuracy_percentage ?? "-"}%
+              </h2>
+            </div>
+
+            <div className="rounded-2xl bg-blue-100 p-4">
+              <p className="text-sm text-gray-600">Samples</p>
+              <h2 className="text-2xl font-bold text-blue-800">
+                {metrics.training_samples ?? "-"}
               </h2>
             </div>
           </div>
         )}
 
-        {/* ================= SENSOR ================= */}
-        <button
-          onClick={fetchLiveSensorData}
-          className="bg-blue-600 text-white px-6 py-2 rounded mb-4"
-        >
-          {sensorLoading ? "Loading..." : "Get Live IoT Data"}
-        </button>
-
-        {sensorTime && (
-          <p className="text-sm text-green-700 mb-4">
-            Last update: {sensorTime}
+        <div className="mb-6 rounded-2xl border border-green-100 bg-green-50 p-5">
+          <h2 className="mb-2 text-lg font-bold text-green-800">
+            IoT Sensor Input
+          </h2>
+          <p className="text-sm text-gray-600">
+            Use live/simulated sensor data or enter values manually.
           </p>
-        )}
 
-        {/* ================= INPUT ================= */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <input
-            name="temperature"
-            value={form.temperature}
-            onChange={handleChange}
-            placeholder="Temperature"
-            className="border p-3 rounded"
-          />
-
-          <input
-            name="humidity"
-            value={form.humidity}
-            onChange={handleChange}
-            placeholder="Humidity"
-            className="border p-3 rounded"
-          />
-
-          <input
-            name="moisture"
-            value={form.moisture}
-            onChange={handleChange}
-            placeholder="Soil Moisture"
-            className="border p-3 rounded"
-          />
+          {sensorTime && (
+            <p className="mt-2 text-sm font-medium text-green-700">
+              Last Sensor Update: {sensorTime}
+            </p>
+          )}
         </div>
 
         <button
+          onClick={getSensorData}
+          disabled={sensorLoading}
+          className="mb-5 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+        >
+          {sensorLoading ? "Loading Sensor Data..." : "Get Live IoT Data"}
+        </button>
+
+        <div className="mb-4 grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              Temperature (°C)
+            </label>
+            <input
+              name="temperature"
+              type="number"
+              min="0"
+              max="60"
+              value={form.temperature}
+              onChange={handleChange}
+              className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Enter temperature"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              Humidity (%)
+            </label>
+            <input
+              name="humidity"
+              type="number"
+              min="0"
+              max="100"
+              value={form.humidity}
+              onChange={handleChange}
+              className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Enter humidity"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">
+              Soil Moisture (%)
+            </label>
+            <input
+              name="moisture"
+              type="number"
+              min="0"
+              max="100"
+              value={form.moisture}
+              onChange={handleChange}
+              className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Enter moisture"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
+        <button
           onClick={handlePredict}
-          className="bg-green-700 text-white px-6 py-3 rounded mt-6 w-full"
+          disabled={loading || !!error}
+          className="w-full rounded-xl bg-green-700 py-3 font-semibold text-white transition hover:bg-green-800 disabled:opacity-50"
         >
           {loading ? "Predicting..." : "Predict Growth"}
         </button>
 
-        {/* ================= RESULT ================= */}
         {result && (
-          <>
-            <div className="grid md:grid-cols-3 gap-4 mt-8">
-              <div className="bg-green-100 p-4 rounded">
-                Growth: {result.growth_value}
+          <div className="mt-8 space-y-5">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl bg-green-100 p-5">
+                <p className="text-sm text-gray-600">Growth Value</p>
+                <h2 className="text-3xl font-bold text-green-900">
+                  {result.growth_value ?? "-"}%
+                </h2>
               </div>
 
-              <div className="bg-yellow-100 p-4 rounded">
-                Bark: {result.bark_thickness_mm}
+              <div className="rounded-2xl bg-yellow-100 p-5">
+                <p className="text-sm text-gray-600">Bark Thickness</p>
+                <h2 className="text-3xl font-bold text-yellow-900">
+                  {result.bark_thickness_mm ?? result.bark_thickness ?? "-"} mm
+                </h2>
               </div>
 
-              <div className="bg-blue-100 p-4 rounded">
-                Status: {result.harvest_status}
+              <div className="rounded-2xl bg-blue-100 p-5">
+                <p className="text-sm text-gray-600">Status</p>
+                <h2 className="text-xl font-bold text-blue-900">
+                  {result.harvest_status ?? result.status ?? "-"}
+                </h2>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 mt-4">
-              <div className="bg-gray-100 p-4 rounded">
-                {result.recommendation}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl bg-gray-100 p-5">
+                <p className="text-sm text-gray-600">Recommendation</p>
+                <h2 className="mt-1 font-semibold text-gray-800">
+                  {result.recommendation ?? "-"}
+                </h2>
               </div>
 
-              <div className="bg-red-100 p-4 rounded">
-                {result.alert}
+              <div className="rounded-2xl bg-red-100 p-5">
+                <p className="text-sm text-gray-600">Alert</p>
+                <h2 className="mt-1 font-semibold text-red-800">
+                  {result.alert ?? "-"}
+                </h2>
               </div>
             </div>
 
-            <div className="mt-4 bg-green-50 p-4 rounded">
-              Firebase:{" "}
-              {result.database_saved ? "Saved Successfully" : "Not Saved"}
+            <div className="rounded-2xl bg-green-50 p-5">
+              <p className="text-sm text-gray-600">Firebase Status</p>
+              <h2 className="mt-1 font-semibold text-green-800">
+                {result.database_saved ? "Saved Successfully" : "Not Saved"}
+              </h2>
             </div>
 
-            {/* GRAPH */}
             <div className="mt-8">
+              <h2 className="mb-4 text-xl font-bold text-gray-800">
+                Model Performance Graph
+              </h2>
+
               <img
                 src="/prediction_plot.png"
-                className="rounded shadow"
+                alt="Model Performance Graph"
+                className="w-full rounded-2xl border shadow"
               />
             </div>
-          </>
+          </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
