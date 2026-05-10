@@ -9,7 +9,10 @@ type NavItem = { href: string; label: string };
 const navItems: NavItem[] = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
-  
+
+  // ✅ NEW PAGE
+  { href: "/iot-monitoring", label: "IoT Monitoring" },
+
   { href: "/diseaseprediction", label: "Disease Prediction" },
   { href: "/growthprediction", label: "Growth Prediction" },
   { href: "/harvest-readiness", label: "Harvest Readiness" },
@@ -38,7 +41,8 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-green-100 bg-white/90 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
-        {/* Logo */}
+        
+        {/* ================= LOGO ================= */}
         <Link
           href="/"
           className="group inline-flex items-center gap-3 rounded-xl px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
@@ -52,13 +56,14 @@ export default function Navbar() {
             <div className="text-base font-bold text-gray-900 md:text-lg">
               CinnaAI
             </div>
+
             <div className="text-xs font-medium text-gray-500">
               Monitoring platform
             </div>
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* ================= DESKTOP NAVIGATION ================= */}
         <nav
           className="hidden items-center gap-1 lg:flex"
           aria-label="Primary"
@@ -79,14 +84,14 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* Right Side */}
+        {/* ================= RIGHT SIDE ================= */}
         <div className="hidden items-center gap-3 md:flex">
           <div className="rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-800">
             Admin User
           </div>
         </div>
 
-        {/* Mobile Button */}
+        {/* ================= MOBILE MENU BUTTON ================= */}
         <div className="flex items-center gap-2 lg:hidden">
           <button
             type="button"
@@ -97,13 +102,19 @@ export default function Navbar() {
             onClick={() => setOpen((v) => !v)}
           >
             <span className="sr-only">Menu</span>
-            <span className="text-lg leading-none">{open ? "✕" : "☰"}</span>
+
+            <span className="text-lg leading-none">
+              {open ? "✕" : "☰"}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      <div id="mobile-nav" className={["lg:hidden", open ? "block" : "hidden"].join(" ")}>
+      {/* ================= MOBILE NAVIGATION ================= */}
+      <div
+        id="mobile-nav"
+        className={["lg:hidden", open ? "block" : "hidden"].join(" ")}
+      >
         <div className="mx-auto max-w-7xl px-4 pb-4 md:px-6">
           <div className="rounded-2xl border border-green-100 bg-white p-2 shadow-sm">
             {items.map((item) => (
