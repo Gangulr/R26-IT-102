@@ -18,6 +18,19 @@ function getAlert(growth: any) {
   return "⚠️ Low Growth";
 }
 
+function getRecordTime(item: any) {
+  return item.prediction_time || item.timestamp || item.created_at || "";
+}
+
+function sortByLatest(data: any[]) {
+  return [...data].sort((a, b) => {
+    const timeA = new Date(getRecordTime(a)).getTime();
+    const timeB = new Date(getRecordTime(b)).getTime();
+
+    return timeB - timeA;
+  });
+}
+
 export default function HistoryPage() {
   const [growthData, setGrowthData] = useState<any[]>([]);
   const [diseaseData, setDiseaseData] = useState<any[]>([]);
@@ -41,8 +54,11 @@ export default function HistoryPage() {
         const diseaseRes = await fetch("http://localhost:8001/disease-history/");
         const diseaseJson = await diseaseRes.json();
 
-        setGrowthData(Array.isArray(growthJson) ? growthJson : []);
-        setDiseaseData(Array.isArray(diseaseJson) ? diseaseJson : []);
+        const safeGrowth = Array.isArray(growthJson) ? growthJson : [];
+        const safeDisease = Array.isArray(diseaseJson) ? diseaseJson : [];
+
+        setGrowthData(sortByLatest(safeGrowth));
+        setDiseaseData(sortByLatest(safeDisease));
       } catch (error) {
         console.error("History fetch error:", error);
         setGrowthData([]);
@@ -56,38 +72,42 @@ export default function HistoryPage() {
   }, []);
 
   const filteredGrowthData = useMemo(() => {
-    return growthData.filter((item) => {
+    const filtered = growthData.filter((item) => {
       const status =
         item.harvest_status || item.status || getStatus(item.growth_value);
       const alert = item.alert || getAlert(item.growth_value);
+      const time = getRecordTime(item);
+
+      const search = growthSearch.toLowerCase();
 
       const matchesSearch =
-        String(item.temperature ?? "").includes(growthSearch) ||
-        String(item.humidity ?? "").includes(growthSearch) ||
-        String(item.moisture ?? "").includes(growthSearch) ||
-        String(item.growth_value ?? "").includes(growthSearch) ||
-        String(status).toLowerCase().includes(growthSearch.toLowerCase()) ||
-        String(alert).toLowerCase().includes(growthSearch.toLowerCase());
+        String(item.temperature ?? "").toLowerCase().includes(search) ||
+        String(item.humidity ?? "").toLowerCase().includes(search) ||
+        String(item.moisture ?? "").toLowerCase().includes(search) ||
+        String(item.growth_value ?? "").toLowerCase().includes(search) ||
+        String(status).toLowerCase().includes(search) ||
+        String(alert).toLowerCase().includes(search) ||
+        String(time).toLowerCase().includes(search);
 
       const matchesStatus =
         growthStatusFilter === "All" || status === growthStatusFilter;
 
       return matchesSearch && matchesStatus;
     });
+
+    return sortByLatest(filtered);
   }, [growthData, growthSearch, growthStatusFilter]);
 
   const filteredDiseaseData = useMemo(() => {
-    return diseaseData.filter((item) => {
+    const filtered = diseaseData.filter((item) => {
+      const time = getRecordTime(item);
+      const search = diseaseSearch.toLowerCase();
+
       const matchesSearch =
-        String(item.prediction ?? "")
-          .toLowerCase()
-          .includes(diseaseSearch.toLowerCase()) ||
-        String(item.confidence ?? "")
-          .toLowerCase()
-          .includes(diseaseSearch.toLowerCase()) ||
-        String(item.severity ?? "")
-          .toLowerCase()
-          .includes(diseaseSearch.toLowerCase());
+        String(item.prediction ?? "").toLowerCase().includes(search) ||
+        String(item.confidence ?? "").toLowerCase().includes(search) ||
+        String(item.severity ?? "").toLowerCase().includes(search) ||
+        String(time).toLowerCase().includes(search);
 
       const matchesSeverity =
         diseaseSeverityFilter === "All" ||
@@ -95,6 +115,8 @@ export default function HistoryPage() {
 
       return matchesSearch && matchesSeverity;
     });
+
+    return sortByLatest(filtered);
   }, [diseaseData, diseaseSearch, diseaseSeverityFilter]);
 
   const growthTotalPages = Math.ceil(filteredGrowthData.length / ITEMS_PER_PAGE);
@@ -115,7 +137,9 @@ export default function HistoryPage() {
   const downloadPDF = (type: "growth" | "disease") => {
     const data = type === "growth" ? filteredGrowthData : filteredDiseaseData;
     const title =
-      type === "growth" ? "Growth Prediction History" : "Disease Prediction History";
+      type === "growth"
+        ? "Growth Prediction History"
+        : "Disease Prediction History";
 
     const rows =
       type === "growth"
@@ -126,6 +150,7 @@ export default function HistoryPage() {
                 item.status ||
                 getStatus(item.growth_value);
               const alert = item.alert || getAlert(item.growth_value);
+              const time = getRecordTime(item);
 
               return `
                 <tr>
@@ -135,22 +160,24 @@ export default function HistoryPage() {
                   <td>${item.growth_value ?? "-"}</td>
                   <td>${status}</td>
                   <td>${alert}</td>
-                  <td>${item.prediction_time ?? item.timestamp ?? "-"}</td>
+                  <td>${time || "-"}</td>
                 </tr>
               `;
             })
             .join("")
         : data
-            .map(
-              (item) => `
+            .map((item) => {
+              const time = getRecordTime(item);
+
+              return `
                 <tr>
                   <td>${item.prediction ?? "-"}</td>
                   <td>${item.confidence ?? "-"}</td>
                   <td>${item.severity ?? "-"}</td>
-                  <td>${item.prediction_time ?? item.timestamp ?? "-"}</td>
+                  <td>${time || "-"}</td>
                 </tr>
-              `
-            )
+              `;
+            })
             .join("");
 
     const headers =
@@ -303,6 +330,7 @@ export default function HistoryPage() {
                     getStatus(item.growth_value);
 
                   const alert = item.alert || getAlert(item.growth_value);
+                  const time = getRecordTime(item);
 
                   return (
                     <tr key={item.id || i} className="border-b text-center">
@@ -312,7 +340,7 @@ export default function HistoryPage() {
                       <td>{item.growth_value ?? "-"}</td>
                       <td>{status}</td>
                       <td>{alert}</td>
-                      <td>{item.prediction_time ?? item.timestamp ?? "-"}</td>
+                      <td>{time || "-"}</td>
                     </tr>
                   );
                 })
@@ -404,14 +432,18 @@ export default function HistoryPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedDisease.map((item, i) => (
-                  <tr key={item.id || i} className="border-b text-center">
-                    <td className="p-2">{item.prediction ?? "-"}</td>
-                    <td>{item.confidence ?? "-"}</td>
-                    <td>{item.severity ?? "-"}</td>
-                    <td>{item.prediction_time ?? item.timestamp ?? "-"}</td>
-                  </tr>
-                ))
+                paginatedDisease.map((item, i) => {
+                  const time = getRecordTime(item);
+
+                  return (
+                    <tr key={item.id || i} className="border-b text-center">
+                      <td className="p-2">{item.prediction ?? "-"}</td>
+                      <td>{item.confidence ?? "-"}</td>
+                      <td>{item.severity ?? "-"}</td>
+                      <td>{time || "-"}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
