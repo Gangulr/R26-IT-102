@@ -5,9 +5,9 @@ import DiseaseChart from "../components/DiseaseChart";
 
 export default function Dashboard() {
   const [sensor, setSensor] = useState({
-    temperature: 28,
-    humidity: 75,
-    moisture: 55,
+    temperature: 0,
+    humidity: 0,
+    moisture: 0,
   });
 
   const [totalGrowth, setTotalGrowth] = useState(0);
@@ -18,18 +18,33 @@ export default function Dashboard() {
   const [recentGrowth, setRecentGrowth] = useState<any[]>([]);
   const [recentDisease, setRecentDisease] = useState<any[]>([]);
 
+  // ================= LIVE IOT SENSOR DATA =================
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSensor({
-        temperature: Math.floor(Math.random() * 10) + 25,
-        humidity: Math.floor(Math.random() * 20) + 60,
-        moisture: Math.floor(Math.random() * 30) + 40,
-      });
-    }, 2000);
+    const fetchSensorData = async () => {
+      try {
+        const res = await fetch("http://localhost:8001/latest-iot-data/");
+        const data = await res.json();
+
+        if (!data.error) {
+          setSensor({
+            temperature: Number(data.temperature || 0),
+            humidity: Number(data.humidity || 0),
+            moisture: Number(data.moisture || 0),
+          });
+        }
+      } catch (error) {
+        console.log("IoT fetch error:", error);
+      }
+    };
+
+    fetchSensorData();
+
+    const interval = setInterval(fetchSensorData, 5000);
 
     return () => clearInterval(interval);
   }, []);
 
+  // ================= DASHBOARD DATA =================
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -83,9 +98,10 @@ export default function Dashboard() {
       </h1>
 
       <p className="mb-8 text-gray-600">
-        Live sensor simulation, disease analytics and cinnamon growth insights.
+        Live IoT sensor data, disease analytics and cinnamon growth insights.
       </p>
 
+      {/* ================= LIVE SENSOR CARDS ================= */}
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
           <p className="text-sm text-gray-500">Temperature</p>
@@ -109,6 +125,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ================= SUMMARY CARDS ================= */}
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="rounded-2xl bg-green-100 p-6">
           <p className="text-sm text-gray-600">Total Growth Predictions</p>
@@ -131,6 +148,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ================= RECENT TABLES ================= */}
       <div className="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-xl font-semibold text-gray-800">
@@ -207,6 +225,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ================= CHART + INSIGHTS ================= */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <DiseaseChart />
 
