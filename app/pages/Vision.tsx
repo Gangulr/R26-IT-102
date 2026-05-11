@@ -2,9 +2,13 @@ import { useState } from "react";
 import axios from "axios";
 
 function Vision() {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<File | null>(null);
 
   const handleUpload = async () => {
+    if (!image) {
+      alert("Choose an image first.");
+      return;
+    }
     const formData = new FormData();
     formData.append("file", image);
 
@@ -15,7 +19,11 @@ function Vision() {
   return (
     <div>
       <h1>AI Vision</h1>
-      <input type="file" onChange={(e) => setImage(e.target.files[0])} />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+      />
       <button onClick={handleUpload}>Process</button>
     </div>
   );
