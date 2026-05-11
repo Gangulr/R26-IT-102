@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { getSensors } from "../services/sensorService";
 
+type SensorRow = {
+  temperature: number;
+  humidity: number;
+  soil_moisture: number;
+};
+
 function Dashboard() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<SensorRow[]>([]);
 
   useEffect(() => {
-    getSensors().then(res => setData(res.data));
+    getSensors().then((res: { data: SensorRow[] }) => setData(res.data));
   }, []);
 
   return (
