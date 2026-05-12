@@ -4,7 +4,7 @@
 This project is an AI-driven smart agriculture system designed for cinnamon cultivation. The system supports cinnamon growth monitoring, disease detection, harvest-readiness prediction, and automated harvesting support using IoT, machine learning, computer vision, and a web-based dashboard.
 
 ## Research Group
-**Group ID:** R26-IT-127  
+**Group ID:** R26-IT-102  
 **Project Type:** 4th Year Research Project  
 **Institution:** Sri Lanka Institute of Information Technology (SLIIT)
 
