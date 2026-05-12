@@ -21,19 +21,6 @@ export default function Dashboard() {
 
   const [recentGrowth, setRecentGrowth] = useState<any[]>([]);
   const [recentDisease, setRecentDisease] = useState<any[]>([]);
-  const [diseaseChartData, setDiseaseChartData] = useState<DiseaseData[]>([]);
-  const [chartLoading, setChartLoading] = useState(true);
-
-  const colors = [
-    "#22c55e",
-    "#3b82f6",
-    "#ef4444",
-    "#f59e0b",
-    "#8b5cf6",
-    "#06b6d4",
-    "#ec4899",
-    "#14b8a6",
-  ];
 
   // ================= LIVE IOT SENSOR DATA =================
   useEffect(() => {
@@ -55,6 +42,7 @@ export default function Dashboard() {
     };
 
     fetchSensorData();
+
     const interval = setInterval(fetchSensorData, 5000);
 
     return () => clearInterval(interval);
@@ -266,7 +254,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ================= PIE CHART + INSIGHTS ================= */}
+      {/* ================= CHART + INSIGHTS ================= */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="mb-6">
