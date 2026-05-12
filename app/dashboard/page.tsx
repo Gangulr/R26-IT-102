@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DiseaseChart from "../components/DiseaseChart";
+
+type DiseaseData = {
+  name: string;
+  value: number;
+};
 
 export default function Dashboard() {
   const [sensor, setSensor] = useState({
@@ -48,6 +52,8 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        setChartLoading(true);
+
         const growthRes = await fetch("http://localhost:8001/growth-history/");
         const growthJson = await growthRes.json();
 
@@ -83,13 +89,36 @@ export default function Dashboard() {
 
         setRecentGrowth(sortedGrowth.slice(0, 5));
         setRecentDisease(sortedDisease.slice(0, 5));
+
+        const counts: Record<string, number> = {};
+
+        diseaseData.forEach((item: any) => {
+          const key = item.prediction || "Unknown";
+          counts[key] = (counts[key] || 0) + 1;
+        });
+
+        const chartData = Object.keys(counts).map((key) => ({
+          name: key,
+          value: counts[key],
+        }));
+
+        setDiseaseChartData(chartData);
       } catch (error) {
         console.error("Dashboard fetch error:", error);
+      } finally {
+        setChartLoading(false);
       }
     };
 
     fetchDashboardData();
   }, []);
+
+  const totalDiseaseChart = diseaseChartData.reduce(
+    (sum, item) => sum + item.value,
+    0
+  );
+
+  let cumulativePercent = 0;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-8">
@@ -227,7 +256,121 @@ export default function Dashboard() {
 
       {/* ================= CHART + INSIGHTS ================= */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <DiseaseChart />
+        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-800">
+              Distribution of Detected Diseases
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Disease prediction analytics overview
+            </p>
+          </div>
+
+          {chartLoading ? (
+            <div className="flex h-[320px] items-center justify-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-green-200 border-t-green-600" />
+            </div>
+          ) : diseaseChartData.length === 0 ? (
+            <div className="flex h-[320px] flex-col items-center justify-center">
+              <p className="text-lg font-medium text-gray-500">
+                No disease data available
+              </p>
+              <p className="mt-2 text-sm text-gray-400">
+                Run disease predictions to generate analytics
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-10 xl:flex-row xl:items-start">
+              <div className="relative h-[300px] w-[300px]">
+                <svg
+                  viewBox="0 0 36 36"
+                  className="h-full w-full rotate-[-90deg]"
+                >
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.9155"
+                    fill="transparent"
+                    stroke="#f3f4f6"
+                    strokeWidth="4"
+                  />
+
+                  {diseaseChartData.map((item, index) => {
+                    const percent = (item.value / totalDiseaseChart) * 100;
+                    const dashArray = `${percent} ${100 - percent}`;
+                    const dashOffset = -cumulativePercent;
+
+                    cumulativePercent += percent;
+
+                    return (
+                      <circle
+                        key={index}
+                        cx="18"
+                        cy="18"
+                        r="15.9155"
+                        fill="transparent"
+                        stroke={colors[index % colors.length]}
+                        strokeWidth="4"
+                        strokeDasharray={dashArray}
+                        strokeDashoffset={dashOffset}
+                        strokeLinecap="round"
+                        className="transition-all duration-700"
+                      />
+                    );
+                  })}
+                </svg>
+
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <h2 className="text-5xl font-bold text-gray-800">
+                    {totalDiseaseChart}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">Total Scans</p>
+                  <div className="mt-4 rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
+                    AI Monitoring Active
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full max-w-[360px] space-y-4">
+                {diseaseChartData.map((item, index) => {
+                  const percent = ((item.value / totalDiseaseChart) * 100).toFixed(1);
+
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 p-4 transition hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="h-5 w-5 rounded-full"
+                          style={{
+                            backgroundColor: colors[index % colors.length],
+                          }}
+                        />
+
+                        <div>
+                          <p
+                            title={item.name}
+                            className="max-w-[180px] truncate text-sm font-semibold text-gray-700"
+                          >
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {percent}% of total predictions
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-full bg-white px-3 py-1 text-sm font-bold text-gray-800 shadow-sm">
+                        {item.value}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-xl font-semibold text-gray-800">
