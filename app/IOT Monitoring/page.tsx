@@ -154,7 +154,7 @@ export default function App() {
 
       {/* TABLE */}
       <div className="bg-[#152018] p-4 rounded-lg mb-6 overflow-x-auto">
-        <h2 className="mb-3 text-sm text-gray-400">Live Data</h2>
+        <h2 className="mb-3 text-sm text-gray-400">Live Sensor Data</h2>
 
         <table className="w-full text-sm">
           <thead className="text-gray-400">
