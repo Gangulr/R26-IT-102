@@ -136,7 +136,7 @@ export default function App() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Smart Agriculture Dashboard</h1>
-          <p className="text-green-400 text-xs">Sensors Network</p>
+          <p className="text-green-400 text-xs">Sensor Network</p>
         </div>
 
         <div className="px-3 py-1 border rounded-full text-sm">
